@@ -84,6 +84,24 @@ half-done goes on a branch.
   `dangerouslySetInnerHTML`. Chat text is customer input — treat it as hostile.
 - The UI speaks English, like the stock software. Comments may explain why in plain words.
 
+## A message that reached the phone and never reached the screen (fixed 2026-08-25)
+
+Replies sent from the CRM were delivered on WhatsApp but never appeared in the chat.
+`messages.sent_by` carries a foreign key to `profiles`, and `profiles` was empty — nothing had
+ever written a row there. So every send from a logged-in browser (where `wa-send` reads the
+user id out of the JWT) was refused by the FK, while curl tests without a login token slipped
+through with `sent_by` null. And `wa-send` discarded the insert error and answered `ok`, so
+the screen had no way to say anything.
+
+Three fixes, all live: `profiles` is backfilled and a trigger on `auth.users` writes the row
+for every new sign-up; `wa-send` (v6) reports `db_error` instead of swallowing it; and `Chat`
+shows "Sent to WhatsApp, but not saved in the CRM" when that happens — without inviting a
+resend, because the customer did get the message.
+
+The lesson is the stock software's own: **a refused write must be said plainly**. Any new
+write path in an Edge Function checks the insert error, always. Two test replies from
+2026-08-25 ~07:16 UTC are gone for good — they were delivered but never recorded.
+
 ## Still open
 
 - Edge Function source is not committed anywhere.

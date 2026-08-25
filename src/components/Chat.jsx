@@ -30,8 +30,11 @@ export default function Chat({ thread, session, onBack }) {
   async function send(payload) {
     setBusy(true); setErr('')
     try {
-      await sendWhatsApp({ contact_id: thread.contact_id, lead_id: thread.lead_id, ...payload })
+      const res = await sendWhatsApp({ contact_id: thread.contact_id, lead_id: thread.lead_id, ...payload })
       setText('')
+      // The message went to WhatsApp but the CRM's own record was refused —
+      // it will not appear in this list. Say so; do not resend, the customer got it.
+      if (res.db_error) setErr('Sent to WhatsApp, but not saved in the CRM: ' + res.db_error)
     } catch (e) { setErr(e.message) }
     setBusy(false)
   }
