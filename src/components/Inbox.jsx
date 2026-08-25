@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase, STATUS, fmtTime } from '../lib/supabase'
 import { enablePush } from '../lib/push'
 import Chat from './Chat'
+import QuickReplies from './QuickReplies'
 
 // A short tone instead of an audio file — nothing to load, nothing to cache.
 function beep() {
@@ -30,6 +31,7 @@ export default function Inbox({ session }) {
   const [active, setActive] = useState(null)
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState('all')
+  const [quick, setQuick] = useState(false)
 
   // The subscription is made once, so it reads live state through refs.
   const threadsRef = useRef([]); useEffect(() => { threadsRef.current = threads }, [threads])
@@ -102,6 +104,7 @@ export default function Inbox({ session }) {
         <header className="topbar">
           <div className="brand">JKMT<small>Sales CRM</small></div>
           <div className="spacer" />
+          <button className="ic" title="Quick replies" onClick={() => setQuick(true)}>⚡</button>
           <button className="ic" title="Enable notifications" onClick={async () => {
             try {
               const r = await enablePush(session.user.id)
@@ -138,6 +141,8 @@ export default function Inbox({ session }) {
       {activeThread
         ? <Chat key={activeThread.contact_id} thread={activeThread} session={session} onBack={() => setActive(null)} />
         : <section className="pane chat empty"><div><div className="brand" style={{ fontSize: 26 }}>JKMT Fabrics</div><p>Select a chat to start replying.</p></div></section>}
+
+      {quick && <QuickReplies manage onClose={() => setQuick(false)} />}
     </div>
   )
 }

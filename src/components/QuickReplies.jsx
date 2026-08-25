@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
-import { supabase, uploadPhotos } from '../lib/supabase'
+import { supabase, uploadPhotos, fetchQuickReplies } from '../lib/supabase'
 
 // Saved replies — text and photos together, one tap sends the lot.
 // Stored server-side (quick_replies + the photo library), so every device
 // carries the same list; a photo is uploaded once and reused forever.
-export default function QuickReplies({ onClose, onSend }) {
+// With `manage` (opened from the inbox, no chat to send into) rows are
+// inert — only + New and delete work there.
+export default function QuickReplies({ onClose, onSend, manage }) {
   const [list, setList] = useState([])
   const [photos, setPhotos] = useState([])
   const [q, setQ] = useState('')
@@ -16,11 +18,8 @@ export default function QuickReplies({ onClose, onSend }) {
   const [up, setUp] = useState(false)
 
   async function load() {
-    const [{ data: qr }, { data: ph }] = await Promise.all([
-      supabase.from('quick_replies').select('*').order('title'),
-      supabase.from('photos').select('*').order('sort_order').order('created_at', { ascending: false }),
-    ])
-    setList(qr ?? []); setPhotos(ph ?? [])
+    const { replies, photos } = await fetchQuickReplies()
+    setList(replies); setPhotos(photos)
   }
   useEffect(() => { load() }, [])
 
@@ -64,7 +63,7 @@ export default function QuickReplies({ onClose, onSend }) {
               return (
                 <div key={r.id} className="qrrow">
                   {/* the whole row sends — that is the point of a quick reply */}
-                  <button className="qrbody" onClick={() => onSend(r, phs)}>
+                  <button className="qrbody" disabled={manage} onClick={() => !manage && onSend(r, phs)}>
                     <b>{r.title}</b>
                     {r.body && <span className="qrtext">{r.body}</span>}
                     {phs.length > 0 && <span className="qrthumbs">

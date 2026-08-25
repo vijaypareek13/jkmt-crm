@@ -33,6 +33,16 @@ export async function uploadPhotos(files) {
   }
 }
 
+// Quick replies with their photos resolved — the sheet, the "/" suggestions
+// and the manage screen all read through this one door.
+export async function fetchQuickReplies() {
+  const [{ data: replies }, { data: photos }] = await Promise.all([
+    supabase.from('quick_replies').select('*').order('title'),
+    supabase.from('photos').select('*').order('sort_order').order('created_at', { ascending: false }),
+  ])
+  return { replies: replies ?? [], photos: photos ?? [] }
+}
+
 export const STATUS = {
   new: { label: 'New', color: '#2F6FED' },
   follow_up: { label: 'Follow up', color: '#D9822B' },

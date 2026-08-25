@@ -107,7 +107,10 @@ write path in an Edge Function checks the insert error, always. Two test replies
 The ⚡ in the composer opens saved replies — a title for finding it, message text, and photos
 from the library, all in `quick_replies` (`photo_ids` points into `photos`). **Tapping a row
 sends immediately**, text first and then each photo — no confirm, at Vijay's word; if a mis-tap
-ever stings, add the confirm then. Stored server-side so every device carries the same list —
+ever stings, add the confirm then. Typing **"/"** in the composer shows the same replies as
+suggestions above it, filtered by what follows the slash, WhatsApp-Business style. The inbox
+top bar has its own ⚡ for adding and deleting — opened there (`manage` prop) rows are inert,
+because there is no chat to send into. Stored server-side so every device carries the same list —
 the phone-local idea was dropped because Meta only accepts a hosted URL for an image anyway,
 and localStorage full of photos is a lesson the stock software already paid for.
 `uploadPhotos()` in `supabase.js` is the one upload path — the picker and quick replies share it.

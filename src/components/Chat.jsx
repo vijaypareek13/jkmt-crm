@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { supabase, sendWhatsApp, STATUS, fmtTime } from '../lib/supabase'
+import { supabase, sendWhatsApp, STATUS, fmtTime, fetchQuickReplies } from '../lib/supabase'
 import LeadPanel from './LeadPanel'
 import PhotoPicker from './PhotoPicker'
 import QuickReplies from './QuickReplies'
@@ -14,6 +14,7 @@ export default function Chat({ thread, session, onBack }) {
   const [panel, setPanel] = useState(false)
   const [picker, setPicker] = useState(false)
   const [quick, setQuick] = useState(false)
+  const [qr, setQr] = useState(null)   // quick replies, fetched the first time "/" is typed
   const endRef = useRef(null)
 
   async function load() {
@@ -43,6 +44,21 @@ export default function Chat({ thread, session, onBack }) {
   function onKey(e) {
     if (e.key === 'Enter' && !e.shiftKey && text.trim()) { e.preventDefault(); send({ text: text.trim() }) }
   }
+
+  // One quick reply, the whole thing: text first, then each photo
+  async function sendQuickReply(r, phs) {
+    setText('')
+    if (r.body) await send({ text: r.body })
+    for (const p of phs) await send({ image_url: p.public_url, caption: p.caption || undefined })
+  }
+
+  // "/" in the composer — like WhatsApp Business shortcuts
+  const slash = text.startsWith('/')
+  useEffect(() => { if (slash && !qr) fetchQuickReplies().then(setQr) }, [slash])
+  const term = slash ? text.slice(1).toLowerCase() : ''
+  const suggestions = slash && qr
+    ? qr.replies.filter(r => !term || r.title.toLowerCase().includes(term) || r.body.toLowerCase().includes(term)).slice(0, 6)
+    : []
 
   let lastDay = ''
   return (
@@ -81,6 +97,22 @@ export default function Chat({ thread, session, onBack }) {
       </div>
 
       {err && <div className="error" style={{ padding: '4px 14px', background: 'var(--white)' }}>{err}</div>}
+      {slash && (
+        <div className="qrsuggest">
+          {!qr ? <div className="qrhint">Loading quick replies…</div>
+            : suggestions.length === 0 ? <div className="qrhint">{qr.replies.length ? 'No quick reply matches.' : 'No quick replies saved yet — press ⚡ to make one.'}</div>
+            : suggestions.map(r => {
+              const phs = (r.photo_ids ?? []).map(id => qr.photos.find(p => p.id === id)).filter(Boolean)
+              return (
+                <button key={r.id} className="qrpick" disabled={busy} onClick={() => sendQuickReply(r, phs)}>
+                  <b>/{r.title}</b>
+                  <span>{r.body || (phs.length ? `${phs.length} photo${phs.length > 1 ? 's' : ''}` : '')}</span>
+                  {phs.length > 0 && r.body && <em>📷 {phs.length}</em>}
+                </button>
+              )
+            })}
+        </div>
+      )}
       <div className="composer">
         <button className="ic" title="Quick replies" onClick={() => setQuick(true)}>⚡</button>
         <button className="ic" title="Send photos" onClick={() => setPicker(true)}>📷</button>
@@ -89,11 +121,7 @@ export default function Chat({ thread, session, onBack }) {
       </div>
 
       {panel && <LeadPanel thread={thread} session={session} onClose={() => setPanel(false)} />}
-      {quick && <QuickReplies onClose={() => setQuick(false)} onSend={async (r, phs) => {
-        setQuick(false)
-        if (r.body) await send({ text: r.body })
-        for (const p of phs) await send({ image_url: p.public_url, caption: p.caption || undefined })
-      }} />}
+      {quick && <QuickReplies onClose={() => setQuick(false)} onSend={(r, phs) => { setQuick(false); sendQuickReply(r, phs) }} />}
       {picker && <PhotoPicker onClose={() => setPicker(false)} onSend={async (photos, caption) => {
         setPicker(false)
         for (const p of photos) await send({ image_url: p.public_url, caption: caption || p.caption || undefined })
