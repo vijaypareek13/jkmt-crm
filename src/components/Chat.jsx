@@ -53,6 +53,8 @@ export default function Chat({ thread, session, onBack }) {
           <span>+{thread.wa_id}{thread.city ? ` · ${thread.city}` : ''}{thread.business_name ? ` · ${thread.business_name}` : ''}</span>
         </button>
         {thread.status && <span className="pill" style={{ background: STATUS[thread.status].color }}>{STATUS[thread.status].label}</span>}
+        {/* Plain phone call — WhatsApp's own calls cannot be started from a website */}
+        <a className="btn ghost sm" href={`tel:+${thread.wa_id}`} title="Call">📞</a>
         <button className="btn ghost sm" onClick={() => setPanel(true)}>Lead</button>
       </header>
 
