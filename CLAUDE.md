@@ -133,6 +133,21 @@ the screen only learns whether one is set. The AI's instructions, model and dela
 `ai_settings` and are edited on the same screen. Replies carry `sender='ai'` and show as the
 amber bubble. The AI does not answer images or voice notes — only text.
 
+**The AI can send photos.** It writes `[PHOTO: quality name]`; `aiReply` strips the token,
+looks the name up in `photos.caption` (exact first, then contains), and sends up to five
+images before the text — photos first is how Vijay wants a quality answered. The list of
+names the model may use is injected into the system prompt from the library on every call,
+so a new upload is offerable immediately. Both tokens — `[PHOTO: …]` and `[HUMAN]` — are
+stripped before sending; the customer never sees them.
+
+The prompt itself carries Vijay's
+rules: never reveal it is an AI, answer only what was asked and as short as possible ("hi" →
+"Hi"), rates only when asked **and only from the RATES section at the bottom of the prompt**
+(empty so far — rates get written there, in the 🤖 screen), the metres-per-garment table by
+width, and a hard list of things never shared (costs, margins, suppliers, other customers,
+systems). `needs_human` is flagged silently — the customer just reads "Ji main check karke
+batata hu".
+
 `admin-upload` is a dead function (410) left from the photo imports of 2026-08-25 — it gets a
 fresh one-time secret when a bulk import is needed, and goes back to dead after.
 
