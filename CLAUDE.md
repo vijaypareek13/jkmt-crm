@@ -102,6 +102,33 @@ The lesson is the stock software's own: **a refused write must be said plainly**
 write path in an Edge Function checks the insert error, always. Two test replies from
 2026-08-25 ~07:16 UTC are gone for good — they were delivered but never recorded.
 
+## Notifications, and the phone in the pocket (added 2026-08-25)
+
+Three layers, each catching what the one above misses:
+
+- **Tab in front** — a short tone (`beep()`, a WebAudio oscillator, no audio file) when a
+  message lands in a chat that is not open. The unread total sits in the tab title.
+- **Tab open but not in front** — a system notification through the service worker
+  (`public/sw.js`). Android refuses `new Notification()` from a page, so the worker shows it
+  everywhere; one banner per chat, `tag`ged so it overwrites itself like WhatsApp's. A tap
+  tells the page which chat to open via `postMessage`.
+- **Everything closed** — real Web Push. `wa-webhook` sends it the moment an inbound message
+  is written, to every row in `push_subscriptions`. An endpoint answering 404/410 is deleted —
+  push services expire endpoints without saying so, which is also why the app quietly
+  re-subscribes on every open once permission is granted.
+
+The VAPID pair: the public key sits in `src/lib/push.js` (public by design), the private key
+in `app_secrets` — a table with RLS on and **no policies at all**, so only the service role
+ever reads it. The same pattern as every other key in this shop: nothing secret in the browser.
+
+**On iPhone the app must be installed** — Share → Add to Home Screen, opened from its icon,
+then the bell (🔔) in the top bar pressed once. Safari's ordinary tab has no `pushManager`;
+the bell says so instead of failing silently. The manifest and icons live in `public/`; the
+icons are generated pixel art, no image tooling involved.
+
+`sendPush` in `wa-webhook` imports `npm:web-push` lazily and is wrapped whole, so a push
+failure can never cost the message itself.
+
 ## Still open
 
 - Edge Function source is not committed anywhere.

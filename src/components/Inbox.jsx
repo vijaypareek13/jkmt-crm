@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase, STATUS, fmtTime } from '../lib/supabase'
+import { enablePush } from '../lib/push'
 import Chat from './Chat'
 
 // A short tone instead of an audio file — nothing to load, nothing to cache.
@@ -61,6 +62,9 @@ export default function Inbox({ session }) {
   useEffect(() => {
     load()
     if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission()
+    // Already allowed once → refresh the push subscription quietly on every open,
+    // because push services expire endpoints without saying so.
+    if (window.Notification?.permission === 'granted') enablePush(session.user.id).catch(() => {})
     const ch = supabase.channel('inbox')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, load)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, p => notifyInbound(p.new))
@@ -98,6 +102,14 @@ export default function Inbox({ session }) {
         <header className="topbar">
           <div className="brand">JKMT<small>Sales CRM</small></div>
           <div className="spacer" />
+          <button className="ic" title="Enable notifications" onClick={async () => {
+            try {
+              const r = await enablePush(session.user.id)
+              alert(r === 'ok' ? 'Notifications are on. New messages will reach this device even when the app is closed.'
+                : r === 'denied' ? 'Notifications are blocked for this site — allow them in the browser settings and try again.'
+                : 'Not supported here. On iPhone: Share → Add to Home Screen, then open the app from its icon and press the bell again.')
+            } catch (e) { alert(e.message) }
+          }}>🔔</button>
           <button className="ic" title="Sign out" onClick={() => supabase.auth.signOut()}>⏻</button>
         </header>
         <div className="search"><input placeholder="Search name, number, city…" value={q} onChange={e => setQ(e.target.value)} /></div>
