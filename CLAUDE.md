@@ -129,6 +129,12 @@ icons are generated pixel art, no image tooling involved.
 `sendPush` in `wa-webhook` imports `npm:web-push` lazily and is wrapped whole, so a push
 failure can never cost the message itself.
 
+Verified end-to-end on Vijay's iPhone (iOS 26.5.2) on 2026-08-25: a real WhatsApp message,
+app closed, notification delivered through `web.push.apple.com`. Two things cost the
+afternoon: the installed PWA kept running a stale bundle (delete the icon and re-add, force
+quit is not enough for a new install), and a bell that hung silently — every await in
+`enablePush` now races a timeout that names its own step.
+
 ## Still open
 
 - Edge Function source is not committed anywhere.
