@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, uploadPhotos } from '../lib/supabase'
 
 export default function PhotoPicker({ onClose, onSend }) {
   const [photos, setPhotos] = useState([])
@@ -16,15 +16,7 @@ export default function PhotoPicker({ onClose, onSend }) {
 
   async function upload(e) {
     const files = [...e.target.files]; if (!files.length) return
-    setUp(true)
-    for (const f of files) {
-      const path = `library/${Date.now()}_${f.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
-      const { error } = await supabase.storage.from('product-photos').upload(path, f, { contentType: f.type })
-      if (error) continue
-      const url = supabase.storage.from('product-photos').getPublicUrl(path).data.publicUrl
-      await supabase.from('photos').insert({ storage_path: path, public_url: url, caption: f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ') })
-    }
-    setUp(false); load()
+    setUp(true); await uploadPhotos(files); setUp(false); load()
   }
 
   const list = photos.filter(p => !q || (p.caption ?? '').toLowerCase().includes(q.toLowerCase()) || (p.tags ?? []).join(' ').toLowerCase().includes(q.toLowerCase()))

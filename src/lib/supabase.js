@@ -21,6 +21,18 @@ export async function sendWhatsApp(payload) {
   return j
 }
 
+// Upload files into the photo library — the picker and quick replies both use this.
+// Two copies would drift apart within a week.
+export async function uploadPhotos(files) {
+  for (const f of files) {
+    const path = `library/${Date.now()}_${f.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+    const { error } = await supabase.storage.from('product-photos').upload(path, f, { contentType: f.type })
+    if (error) continue
+    const url = supabase.storage.from('product-photos').getPublicUrl(path).data.publicUrl
+    await supabase.from('photos').insert({ storage_path: path, public_url: url, caption: f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ') })
+  }
+}
+
 export const STATUS = {
   new: { label: 'New', color: '#2F6FED' },
   follow_up: { label: 'Follow up', color: '#D9822B' },

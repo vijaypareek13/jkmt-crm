@@ -102,6 +102,16 @@ The lesson is the stock software's own: **a refused write must be said plainly**
 write path in an Edge Function checks the insert error, always. Two test replies from
 2026-08-25 ~07:16 UTC are gone for good — they were delivered but never recorded.
 
+## Quick replies (added 2026-08-25)
+
+The ⚡ in the composer opens saved replies — a title for finding it, message text, and photos
+from the library, all in `quick_replies` (`photo_ids` points into `photos`). **Tapping a row
+sends immediately**, text first and then each photo — no confirm, at Vijay's word; if a mis-tap
+ever stings, add the confirm then. Stored server-side so every device carries the same list —
+the phone-local idea was dropped because Meta only accepts a hosted URL for an image anyway,
+and localStorage full of photos is a lesson the stock software already paid for.
+`uploadPhotos()` in `supabase.js` is the one upload path — the picker and quick replies share it.
+
 ## Notifications, and the phone in the pocket (added 2026-08-25)
 
 Three layers, each catching what the one above misses:
@@ -138,6 +148,5 @@ quit is not enough for a new install), and a bell that hung silently — every a
 ## Still open
 
 - Edge Function source is not committed anywhere.
-- `products`, `follow_ups`, `quick_replies`, `lead_status_history` tables exist but no screen
-  reads them yet.
+- `products`, `follow_ups`, `lead_status_history` tables exist but no screen reads them yet.
 - The DB holds a few test rows (one contact, four messages) from development.
