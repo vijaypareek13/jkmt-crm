@@ -118,6 +118,24 @@ the phone-local idea was dropped because Meta only accepts a hosted URL for an i
 and localStorage full of photos is a lesson the stock software already paid for.
 `uploadPhotos()` in `supabase.js` is the one upload path — the picker and quick replies share it.
 
+## The AI answers the shop's WhatsApp (added 2026-08-25)
+
+`aiReply()` in `wa-webhook` answers inbound **text** after Meta has been answered
+(`EdgeRuntime.waitUntil`), so a slow model can never make Meta time out and redeliver. Two
+switches, both honoured there: `ai_settings.enabled` is the shop's (🤖 in the inbox top bar),
+`leads.ai_enabled` the chat's (Lead panel). Three silences built in: it waits
+`reply_delay_sec` and answers only the last message of a burst; it stays quiet if a person
+replied meanwhile; and a lead flagged `needs_human` is left alone until the flag is cleared —
+the model marks that itself by ending with `[HUMAN]`, which is stripped before sending.
+
+The OpenAI key goes browser → `ai-key` function → `app_secrets`, and is never read back out —
+the screen only learns whether one is set. The AI's instructions, model and delay live in
+`ai_settings` and are edited on the same screen. Replies carry `sender='ai'` and show as the
+amber bubble. The AI does not answer images or voice notes — only text.
+
+`admin-upload` is a dead function (410) left from the photo imports of 2026-08-25 — it gets a
+fresh one-time secret when a bulk import is needed, and goes back to dead after.
+
 ## Notifications, and the phone in the pocket (added 2026-08-25)
 
 Three layers, each catching what the one above misses:
