@@ -107,9 +107,12 @@ write path in an Edge Function checks the insert error, always. Two test replies
 Saved replies — a title for finding it, message text, and photos from the library, all in
 `quick_replies` (`photo_ids` points into `photos`). Typing **"/"** in the composer shows them
 as suggestions above it, filtered by what follows the slash, WhatsApp-Business style — this is
-the only way to send one; a composer ⚡ existed for a day and Vijay had it removed. **Tapping
-a suggestion sends immediately**, text first and then each photo — no confirm, at his word; if
-a mis-tap ever stings, add the confirm then. The ⚡ in the inbox top bar is where they are made
+the only way to send one; a composer ⚡ existed for a day and Vijay had it removed. **Tapping a
+suggestion fills the composer** — text into the box, photos staged as removable thumbnails —
+and Send fires the lot, exactly as WhatsApp does. (It sent instantly for a day; the WhatsApp
+flow replaced that.) **A photo never carries its library caption out** — that caption is a
+filename for searching, not something a customer should read; only text typed by a person goes.
+Tapping any image in the chat opens it full screen. The ⚡ in the inbox top bar is where they are made
 and deleted — opened there (`manage` prop) rows are inert, because there is no chat to send into. Stored server-side so every device carries the same list —
 the phone-local idea was dropped because Meta only accepts a hosted URL for an image anyway,
 and localStorage full of photos is a lesson the stock software already paid for.
