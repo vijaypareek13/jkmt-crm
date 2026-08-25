@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase, sendWhatsApp, STATUS, fmtTime, fetchQuickReplies } from '../lib/supabase'
 import LeadPanel from './LeadPanel'
 import PhotoPicker from './PhotoPicker'
-import QuickReplies from './QuickReplies'
 
 const TICK = { queued: '🕓', sent: '✓', delivered: '✓✓', read: '✓✓', failed: '!' }
 
@@ -13,7 +12,6 @@ export default function Chat({ thread, session, onBack }) {
   const [err, setErr] = useState('')
   const [panel, setPanel] = useState(false)
   const [picker, setPicker] = useState(false)
-  const [quick, setQuick] = useState(false)
   const [qr, setQr] = useState(null)   // quick replies, fetched the first time "/" is typed
   const endRef = useRef(null)
 
@@ -114,14 +112,12 @@ export default function Chat({ thread, session, onBack }) {
         </div>
       )}
       <div className="composer">
-        <button className="ic" title="Quick replies" onClick={() => setQuick(true)}>⚡</button>
         <button className="ic" title="Send photos" onClick={() => setPicker(true)}>📷</button>
         <textarea rows={1} placeholder="Type a message" value={text} onChange={e => setText(e.target.value)} onKeyDown={onKey} disabled={busy} />
         <button className="send" disabled={busy || !text.trim()} onClick={() => send({ text: text.trim() })}>{busy ? '…' : 'Send'}</button>
       </div>
 
       {panel && <LeadPanel thread={thread} session={session} onClose={() => setPanel(false)} />}
-      {quick && <QuickReplies onClose={() => setQuick(false)} onSend={(r, phs) => { setQuick(false); sendQuickReply(r, phs) }} />}
       {picker && <PhotoPicker onClose={() => setPicker(false)} onSend={async (photos, caption) => {
         setPicker(false)
         for (const p of photos) await send({ image_url: p.public_url, caption: caption || p.caption || undefined })
