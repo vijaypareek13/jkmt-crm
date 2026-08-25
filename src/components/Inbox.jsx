@@ -1,6 +1,18 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase, STATUS, fmtTime } from '../lib/supabase'
 import Chat from './Chat'
+
+// A short tone instead of an audio file — nothing to load, nothing to cache.
+function beep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const o = ctx.createOscillator(), g = ctx.createGain()
+    o.connect(g); g.connect(ctx.destination)
+    o.frequency.value = 880; g.gain.value = 0.08
+    o.start(); g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25)
+    o.stop(ctx.currentTime + 0.3)
+  } catch { /* autoplay policy may refuse before the first tap — fine */ }
+}
 
 const FILTERS = [
   { key: 'all', label: 'All' },
@@ -18,20 +30,54 @@ export default function Inbox({ session }) {
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState('all')
 
+  // The subscription is made once, so it reads live state through refs.
+  const threadsRef = useRef([]); useEffect(() => { threadsRef.current = threads }, [threads])
+  const activeRef = useRef(null); useEffect(() => { activeRef.current = active }, [active])
+
   async function load() {
     const { data } = await supabase.from('inbox').select('*').order('last_message_at', { ascending: false, nullsFirst: false })
     setThreads(data ?? [])
   }
 
+  // New incoming message, and the person is not reading that chat right now:
+  // a sound always, a system notification when the tab is not in front.
+  function notifyInbound(m) {
+    if (m.direction !== 'inbound') return
+    if (activeRef.current === m.contact_id && document.hasFocus()) return
+    beep()
+    if (document.hasFocus()) return
+    if (!('Notification' in window) || Notification.permission !== 'granted') return
+    const t = threadsRef.current.find(x => x.contact_id === m.contact_id)
+    const title = t?.name || (t ? `+${t.wa_id}` : 'New message')
+    const body = m.type === 'image' ? '📷 Photo' : (m.body || m.type)
+    // tag = one notification per chat that overwrites itself, like WhatsApp
+    const opts = { body, tag: m.contact_id, data: { contact_id: m.contact_id } }
+    navigator.serviceWorker?.getRegistration().then(r => {
+      if (r) r.showNotification(title, opts)
+      else { const n = new Notification(title, opts); n.onclick = () => { window.focus(); setActive(m.contact_id); n.close() } }
+    })
+  }
+
   useEffect(() => {
     load()
+    if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission()
     const ch = supabase.channel('inbox')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, load)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, p => notifyInbound(p.new))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, load)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'contacts' }, load)
       .subscribe()
-    return () => supabase.removeChannel(ch)
+    // A notification tapped on the lock screen — the service worker says which chat
+    const onMsg = e => { if (e.data?.open) setActive(e.data.open) }
+    navigator.serviceWorker?.addEventListener('message', onMsg)
+    return () => { supabase.removeChannel(ch); navigator.serviceWorker?.removeEventListener('message', onMsg) }
   }, [])
+
+  // Unread total in the tab title, so a minimized window still says something
+  useEffect(() => {
+    const n = threads.reduce((s, t) => s + (t.unread_count || 0), 0)
+    document.title = n ? `(${n}) JKMT CRM` : 'JKMT CRM'
+  }, [threads])
 
   const list = useMemo(() => threads.filter(t => {
     if (q) {
